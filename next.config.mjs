@@ -4,7 +4,7 @@ const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: [
       "better-sqlite3",
-      "pdf-parse",
+      "pdfjs-dist",
       "exceljs",
       "mammoth",
       "bcryptjs",

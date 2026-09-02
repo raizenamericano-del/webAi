@@ -10,7 +10,8 @@ export function NeonCursor() {
   React.useEffect(() => {
     const isTouch = window.matchMedia("(pointer: coarse)").matches;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (isTouch || reduced) return;
+    const turnedOff = localStorage.getItem("neural-cursor") === "off";
+    if (isTouch || reduced || turnedOff) return;
     setEnabled(true);
   }, []);
 

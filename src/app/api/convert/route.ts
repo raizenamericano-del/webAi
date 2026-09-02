@@ -26,9 +26,9 @@ export async function POST(req: Request) {
     switch (mode) {
       /* ------------------------------ PDF ------------------------------ */
       case "pdf-text": {
-        const pdfParse = require("pdf-parse");
-        const data = await pdfParse(buf);
-        return textRes(data.text || "", file.name.replace(/\.pdf$/i, "") + ".txt");
+        const { extractPdfText } = await import("@/lib/pdf");
+        const text = await extractPdfText(buf);
+        return textRes(text, file.name.replace(/\.pdf$/i, "") + ".txt");
       }
 
       case "pdf-docx": {

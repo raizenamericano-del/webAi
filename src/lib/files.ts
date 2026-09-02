@@ -5,10 +5,8 @@ export async function extractText(file: File, maxChars = 24000): Promise<string>
 
   try {
     if (name.endsWith(".pdf") || file.type === "application/pdf") {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const pdfParse = require("pdf-parse");
-      const data = await pdfParse(buf);
-      return clip(data.text || "", maxChars);
+      const { extractPdfText } = await import("./pdf");
+      return clip(await extractPdfText(buf), maxChars);
     }
     if (name.endsWith(".docx") || file.type?.includes("wordprocessingml")) {
       const mammoth = await import("mammoth");
