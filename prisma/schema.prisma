@@ -1,0 +1,183 @@
+// NEURAL AI STUDIO - referensi schema Prisma
+// ---------------------------------------------------------------------------
+// Aplikasi ini secara default pakai SQLite lewat better-sqlite3 (src/lib/db.ts)
+// supaya jalan tanpa setup & tanpa download engine.
+// Kalau lu mau pindah ke Prisma + PostgreSQL:
+//   1. npm i @prisma/client && npm i -D prisma
+//   2. set provider di bawah jadi "postgresql" + isi DATABASE_URL=postgres://...
+//   3. npx prisma db push
+//   4. ganti pemakaian src/lib/store.ts ke Prisma client (query-nya 1:1)
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  passwordHash  String?
+  image         String?
+  bio           String?
+  role          String    @default("USER") // USER | ADMIN
+  plan          String    @default("FREE") // FREE | PRO | ENTERPRISE
+  avatarSeed    String?
+  stripeCustomerId String?
+  dailyRequests Int       @default(0)
+  totalRequests Int       @default(0)
+  requestResetAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  threads       ChatThread[]
+  messages      ChatMessage[]
+  generations   Generation[]
+  downloads     Download[]
+  activities    Activity[]
+  apiKeys       ApiKey[]
+  userKeys      UserKey[]
+  accounts      Account[]
+  sessions      Session[]
+}
+
+// ---- NextAuth -------------------------------------------------
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---- App data -------------------------------------------------
+model ChatThread {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("Percakapan baru")
+  model     String   @default("llama3-70b-8192")
+  pinned    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+
+  @@index([userId])
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  userId    String?
+  role      String   // user | assistant | system
+  content   String
+  model     String?
+  meta      String?  // JSON string (image url, files, search results, ...)
+  createdAt DateTime @default(now())
+  thread    ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([threadId])
+}
+
+model Generation {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // image | video | audio | music
+  prompt    String
+  resultUrl String?
+  meta      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Download {
+  id        String   @id @default(cuid())
+  userId    String?
+  platform  String
+  url       String
+  title     String?
+  meta      String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  detail    String?
+  points    Int      @default(1)
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ApiKey {
+  id         String   @id @default(cuid())
+  userId     String
+  name       String
+  keyHash    String
+  prefix     String
+  lastUsedAt DateTime?
+  requests   Int      @default(0)
+  revoked    Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model UserKey {
+  id        String   @id @default(cuid())
+  userId    String
+  provider  String   // groq | nvidia | openai | tavily | elevenlabs | removebg | other
+  secret    String   // AES encrypted
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}
+
+model Counter {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Int    @default(0)
+}
